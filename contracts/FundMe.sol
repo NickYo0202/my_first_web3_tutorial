@@ -24,15 +24,19 @@ contract FundMe{
 
     address erc20Addr;
     bool public getFundSuccess;
-    constructor(uint256 _lockTime){
-        //这里用的是sepolia测试网地址
-        dataFeed =AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
+
+    event FundWithdrawByOwner(uint256);
+    event RefundToFunder(address,uint256);
+
+    constructor(uint256 _lockTime,address _dataFeedAddr){
+        //这里用的是sepolia测试网地址 0x694AA1769357215DE4FAC081bf1f309aDC325306
+        dataFeed =AggregatorV3Interface(_dataFeedAddr);
         owner = msg.sender;
         deploymentTimestamp = block.timestamp;
         lockTime = _lockTime;
     }
     function fund() external payable {
-        require(convertEth2Usd(msg.value)>=MINIMUM_VALUE,unicode"需要更多的eth");
+        require(convertEth2Usd(msg.value)>=MINIMUM_VALUE,"You need to fund more ETH!");
         require(block.timestamp < deploymentTimestamp+lockTime,"window is closed");
          fundersToAmount[msg.sender] = msg.value;
     }
@@ -79,10 +83,12 @@ contract FundMe{
       //call :可以处理纯转账和处理数据: transfer ETH with data return value of function and bool 
       //(bool , result)addr.call{value : value}("data");
       bool success;
-      (success,) = payable(msg.sender).call{value : address(this).balance}("");
+      uint256 balance =  address(this).balance;
+      (success,) = payable(msg.sender).call{value : balance}("");
       require(success,"transfer tx failed");
       fundersToAmount[msg.sender] = 0;
       getFundSuccess = true;
+      emit FundWithdrawByOwner(balance);
     }
 
     function refund() external windowClosed{
@@ -90,10 +96,12 @@ contract FundMe{
       //先检测当前地址有没有存在之前记录的fundermapping中
       require(fundersToAmount[msg.sender] != 0,"there is no fund for you");
       bool success;
-      (success,) = payable(msg.sender).call{value : fundersToAmount[msg.sender]}("");
+      uint256 amountToRefund = fundersToAmount[msg.sender];
+      (success,) = payable(msg.sender).call{value : amountToRefund}("");
       require(success,"transfer tx failed");
       //交易成功时，mapping里的值清零
       fundersToAmount[msg.sender] = 0;
+      emit RefundToFunder(msg.sender,amountToRefund);
     }
 
     function setFunderToAmount(address funder,uint256 amountToUpdate) external {
