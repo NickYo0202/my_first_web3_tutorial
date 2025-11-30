@@ -1,9 +1,9 @@
 
+
 require("@nomiclabs/hardhat-ethers");
 require("@chainlink/env-enc").config();
-require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
-// 不要 require("@nomicfoundation/hardhat-verify");
+require("@nomicfoundation/hardhat-verify");
 require("./tasks/deploy-fundme");
 require("./tasks/interact-fundme");
 require("hardhat-deploy");
@@ -30,12 +30,21 @@ module.exports = {
       chainId: 11155111,
     }
   },
+
   etherscan: {
     // Your API key for Etherscan
-    // Obtain one at https://etherscan.io/
-    apiKey: {
-      sepolia: ETHERSCAN_API_KEY
-    }
+      apiKey: {
+      sepolia: "J1FXM4MFQ68J1PA6UXYBKG1ADMT7EK87R4"
+      },
+      customChains: [{
+        network: "sepolia",
+        chainId: 11155111,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api?chainid=11155111",
+          browserURL: "https://sepolia.etherscan.io"
+        } 
+      }],
+    
   },
   namedAccounts: {
     firstAccount: {
